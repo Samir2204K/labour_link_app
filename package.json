@@ -1,0 +1,14 @@
+{
+  "name": "labour-link-root",
+  "version": "1.0.0",
+  "description": "Root orchestrator for Labour Link",
+  "scripts": {
+    "install-all": "npm install && npm install --prefix frontend",
+    "frontend": "npm run dev --prefix frontend",
+    "backend": "cd backend && .\\mvnw.cmd spring-boot:run",
+    "start": "concurrently --kill-others \"npm run frontend\" \"npm run backend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

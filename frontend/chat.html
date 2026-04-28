@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Private Chat</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #e5ddd5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        #chat-container { width: 100%; max-width: 450px; height: 90vh; background: #efeae2; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        #chat-header { background: #075e54; color: white; padding: 12px 15px; display: flex; align-items: center; justify-content: space-between; }
+        .header-info { display: flex; flex-direction: column; }
+        .header-title { font-size: 1.1em; font-weight: 600; }
+        .header-status { font-size: 0.8em; color: #d9fdd3; }
+        
+        #login-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 10; display: flex; flex-direction: column; padding: 20px; justify-content: center; }
+        #login-overlay input, #login-overlay button { padding: 10px; margin: 5px 0; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
+        #login-overlay button { background: #075e54; color: white; cursor: pointer; border: none; }
+        
+        #message-area { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; }
+        
+        .message { max-width: 75%; padding: 8px 10px; margin-bottom: 8px; border-radius: 8px; position: relative; display: flex; flex-direction: column; box-shadow: 0 1px 1px rgba(0,0,0,0.1); word-wrap: break-word; font-size: 0.95em; line-height: 1.3; }
+        .sent { background: #d9fdd3; align-self: flex-end; border-top-right-radius: 0; }
+        .received { background: #ffffff; align-self: flex-start; border-top-left-radius: 0; }
+        
+        .msg-info { display: flex; justify-content: flex-end; align-items: center; margin-top: 4px; gap: 5px; }
+        .timestamp { font-size: 0.7em; color: #667781; }
+        .ticks { font-size: 0.7em; color: #53bdeb; }
+        .ticks.unseen { color: #8696a0; }
+        
+        #typing-indicator { font-size: 0.85em; color: #075e54; padding: 0 20px 10px; font-style: italic; display: none; background: transparent; }
+        
+        #input-area { display: flex; padding: 10px; background: #f0f2f5; gap: 8px; align-items: center; }
+        #message-input { flex: 1; padding: 12px 15px; border: none; border-radius: 20px; outline: none; font-size: 1em; background: white; }
+        #send-btn { background: #00a884; color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 18px; }
+        #send-btn:hover { background: #008f6f; }
+        
+        .token-input { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="chat-container">
+    <div id="login-overlay">
+        <h2>Setup Chat Context</h2>
+        <label>Your JWT Token (Simulating login):</label>
+        <input type="text" id="jwt-token" placeholder="Bearer eyJhbG...">
+        <label>Chat With (Email/Mobile):</label>
+        <input type="text" id="chat-with-user" placeholder="user@example.com">
+        <button onclick="startChat()">Start Chat</button>
+    </div>
+
+    <div id="chat-header">
+        <div class="header-info">
+            <span class="header-title" id="chat-title">Chat</span>
+            <span class="header-status" id="user-status">Offline</span>
+        </div>
+        <button onclick="logout()" style="background:transparent;border:none;color:white;cursor:pointer;">Logout</button>
+    </div>
+    
+    <div id="message-area"></div>
+    <div id="typing-indicator">typing...</div>
+    
+    <div id="input-area">
+        <input type="text" id="message-input" placeholder="Type a message">
+        <button id="send-btn">&#10148;</button>
+    </div>
+</div>
+
+<script src="chat.js"></script>
+</body>
+</html>

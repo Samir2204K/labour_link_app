@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Send, CheckCheck } from 'lucide-react';
+import { X, Send, CheckCheck, Paperclip, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
@@ -15,10 +15,12 @@ export default function ChatWindow({ receiver, onClose }) {
   const [isTyping, setIsTyping] = useState(false);
   const [receiverTyping, setReceiverTyping] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
+  const [uploading, setUploading] = useState(false);
   
   const stompClient = useRef(null);
   const messageAreaRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   console.log("ChatWindow rendering for receiver:", receiver);
 
@@ -193,6 +195,42 @@ export default function ChatWindow({ receiver, onClose }) {
     }
   };
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Basic validation
+    if (!file.type.startsWith('image/')) {
+      alert("Please upload an image file.");
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const response = await chatService.uploadImage(file);
+      
+      if (stompClient.current && stompClient.current.connected) {
+        const chatMessage = {
+          senderId: user.email,
+          receiverId: receiver.email,
+          content: "Sent an image",
+          imageUrl: response.fileDownloadUri
+        };
+        stompClient.current.publish({
+          destination: "/app/chat.sendMessage",
+          body: JSON.stringify(chatMessage)
+        });
+      }
+    } catch (error) {
+      console.error("Upload failed", error);
+      alert("Failed to upload image. Please try again.");
+    } finally {
+      setUploading(false);
+      // Reset input
+      e.target.value = '';
+    }
+  };
+
   return createPortal(
     <div className="fixed bottom-6 right-6 w-96 h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden z-[9999] border border-gray-100" style={{ bottom: '24px', right: '24px' }}>
       {/* Header */}
@@ -220,7 +258,17 @@ export default function ChatWindow({ receiver, onClose }) {
                 "max-w-[80%] p-3 rounded-2xl text-sm shadow-sm",
                 isSent ? "bg-accent text-white rounded-tr-none" : "bg-white text-gray-800 rounded-tl-none border border-gray-100"
               )}>
-                {msg.content}
+                {msg.imageUrl && (
+                  <div className="mb-2">
+                    <img 
+                      src={msg.imageUrl} 
+                      alt="Attachment" 
+                      className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => window.open(msg.imageUrl, '_blank')}
+                    />
+                  </div>
+                )}
+                {msg.content && <p>{msg.content}</p>}
                 <div className={cn("flex items-center gap-1 mt-1 justify-end", isSent ? "text-white/70" : "text-gray-400")}>
                   <span className="text-[9px]">
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -245,18 +293,37 @@ export default function ChatWindow({ receiver, onClose }) {
       </div>
 
       {/* Input */}
-      <div className="p-4 bg-white border-t border-gray-100 flex gap-2">
-        <input 
-          type="text" 
-          placeholder="Type a message..." 
-          className="flex-1 px-4 py-2 bg-gray-50 rounded-xl border border-gray-100 outline-none focus:border-accent text-sm transition-all"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={handleKeyPress}
-        />
-        <Button onClick={sendMessage} className="size-10 !p-0 flex items-center justify-center rounded-xl">
-          <Send size={18} />
-        </Button>
+      <div className="p-4 bg-white border-t border-gray-100 flex flex-col gap-2">
+        {uploading && (
+          <div className="text-[10px] text-accent animate-pulse px-1">Uploading image...</div>
+        )}
+        <div className="flex gap-2">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+            className="hidden" 
+            accept="image/*"
+          />
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2 text-gray-400 hover:text-accent transition-colors"
+            disabled={uploading}
+          >
+            <ImageIcon size={20} />
+          </button>
+          <input 
+            type="text" 
+            placeholder="Type a message..." 
+            className="flex-1 px-4 py-2 bg-gray-50 rounded-xl border border-gray-100 outline-none focus:border-accent text-sm transition-all"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+          />
+          <Button onClick={sendMessage} className="size-10 !p-0 flex items-center justify-center rounded-xl">
+            <Send size={18} />
+          </Button>
+        </div>
       </div>
     </div>,
     document.body

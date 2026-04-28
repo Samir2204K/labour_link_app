@@ -22,6 +22,7 @@ public class ChatMessage {
     private String senderId;
     private String receiverId;
     private String content;
+    private String imageUrl;
     private LocalDateTime timestamp;
     @Builder.Default
     private boolean delivered = false;

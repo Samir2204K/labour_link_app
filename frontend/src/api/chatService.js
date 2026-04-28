@@ -16,5 +16,15 @@ export const chatService = {
   getPartnerInfo: async (email) => {
     const response = await api.get(`/chat/partner/${email}`);
     return response.data;
+  },
+  uploadImage: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/chat/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
   }
 };

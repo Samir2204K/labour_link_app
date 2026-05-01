@@ -6,7 +6,7 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
-export const Button = ({ className, variant = 'primary', size = 'md', ...props }) => {
+export const Button = React.forwardRef(({ className, variant = 'primary', size = 'md', ...props }, ref) => {
   const variants = {
     primary: 'bg-accent text-white hover:bg-accent-hover shadow-lg shadow-accent/20',
     secondary: 'bg-white text-primary border border-gray-200 hover:border-accent hover:text-accent',
@@ -23,6 +23,7 @@ export const Button = ({ className, variant = 'primary', size = 'md', ...props }
 
   return (
     <button 
+      ref={ref}
       className={cn(
         'rounded-xl font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2',
         variants[variant],
@@ -32,20 +33,28 @@ export const Button = ({ className, variant = 'primary', size = 'md', ...props }
       {...props} 
     />
   );
-};
+});
 
-export const Input = ({ label, error, className, ...props }) => {
+export const Input = ({ label, error, className, icon, ...props }) => {
   return (
     <div className="w-full space-y-1.5">
       {label && <label className="text-sm font-semibold text-gray-700 ml-1">{label}</label>}
-      <input 
-        className={cn(
-          "w-full px-4 py-3 rounded-xl border border-gray-200 outline-none transition-all focus:border-accent focus:ring-4 focus:ring-accent/5 bg-gray-50/50",
-          error && "border-red-500 focus:border-red-500 focus:ring-red-500/5",
-          className
+      <div className="relative">
+        {icon && (
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+            {icon}
+          </span>
         )}
-        {...props}
-      />
+        <input 
+          className={cn(
+            "w-full px-4 py-3 rounded-xl border border-gray-200 outline-none transition-all focus:border-accent focus:ring-4 focus:ring-accent/5 bg-gray-50/50",
+            icon && "pl-10",
+            error && "border-red-500 focus:border-red-500 focus:ring-red-500/5",
+            className
+          )}
+          {...props}
+        />
+      </div>
       {error && <p className="text-xs font-medium text-red-500 ml-1">{error}</p>}
     </div>
   );

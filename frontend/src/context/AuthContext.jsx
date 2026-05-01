@@ -103,8 +103,27 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const updateProfile = async (payload) => {
+        try {
+            const response = await api.put('/me', payload);
+            if (response.data?.user) {
+                const updatedUser = response.data.user;
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                setUser(updatedUser);
+                if (updatedUser.role) {
+                    setRole(updatedUser.role.toLowerCase());
+                    localStorage.setItem('role', updatedUser.role.toLowerCase());
+                }
+            }
+            return response.data;
+        } catch (error) {
+            console.error("Profile update failed", error);
+            throw error;
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, role, login, logout, loading, sendOtp, sendOtpForRegistration, verifyOtp, resendOtp }}>
+        <AuthContext.Provider value={{ user, role, login, logout, loading, sendOtp, sendOtpForRegistration, verifyOtp, resendOtp, updateProfile }}>
             {!loading && children}
         </AuthContext.Provider>
     );

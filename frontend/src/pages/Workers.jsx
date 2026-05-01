@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search, Filter, MapPin, SlidersHorizontal, ChevronDown, Navigation } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Search, MapPin, SlidersHorizontal, ChevronDown, Navigation, LogIn, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axios';
 import { bookingService } from '../api/bookingService';
-import { SectionHeader, Button, Input } from '../components/UI';
+import { savedWorkerService } from '../api/savedWorkerService';
+import { SectionHeader, Button } from '../components/UI';
 import { WorkerCard } from '../components/WorkerCard';
 import ChatWindow from '../components/ChatWindow';
 import MapComponent from '../components/MapComponent';
@@ -14,6 +15,8 @@ import { useAuth } from '../context/AuthContext';
 export default function Workers() {
   const [searchParams] = useSearchParams();
   const categoryParam = searchParams.get('category') || '';
+  const location = useLocation();
+  const navigate = useNavigate();
   
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,12 +25,53 @@ export default function Workers() {
   const [chatWorker, setChatWorker] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [showMap, setShowMap] = useState(false);
+  const [savedWorkerIds, setSavedWorkerIds] = useState(new Set());
+  const [authPromptWorker, setAuthPromptWorker] = useState(null);
+  const loginButtonRef = useRef(null);
   const { showToast } = useToast();
   const { user } = useAuth();
 
   useEffect(() => {
+    setSelectedCategory(categoryParam);
+  }, [categoryParam]);
+
+  useEffect(() => {
     fetchWorkers();
   }, [selectedCategory, userLocation]);
+
+  useEffect(() => {
+    const fetchSavedIds = async () => {
+      try {
+        const ids = await savedWorkerService.getSavedWorkerIds();
+        setSavedWorkerIds(new Set(ids));
+      } catch (error) {
+        if (user?.role?.toLowerCase() === 'customer') {
+          console.error('Failed to fetch saved workers', error);
+        }
+      }
+    };
+
+    if (user?.role?.toLowerCase() === 'customer') {
+      fetchSavedIds();
+    } else {
+      setSavedWorkerIds(new Set());
+    }
+  }, [user?.email, user?.role]);
+
+  useEffect(() => {
+    if (!authPromptWorker) return;
+
+    loginButtonRef.current?.focus();
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeAuthPrompt();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [authPromptWorker]);
 
   const fetchWorkers = async () => {
     setLoading(true);
@@ -77,7 +121,8 @@ export default function Workers() {
 
   const handleBook = async (worker) => {
     if (!user) {
-        showToast("Please login to book a service", "error");
+        showToast("Sign in to book this worker", "info");
+        setAuthPromptWorker(worker);
         return;
     }
 
@@ -128,10 +173,51 @@ export default function Workers() {
     setChatWorker(worker);
   };
 
+  const handleSave = async (worker) => {
+    if (!user || user.role?.toLowerCase() !== 'customer') {
+      showToast("Only customers can save workers", "error");
+      return;
+    }
+
+    const isSaved = savedWorkerIds.has(worker.id);
+    try {
+      if (isSaved) {
+        await savedWorkerService.removeWorker(worker.id);
+        setSavedWorkerIds((current) => {
+          const next = new Set(current);
+          next.delete(worker.id);
+          return next;
+        });
+        showToast(`${worker.name} removed from saved list`, "success");
+      } else {
+        await savedWorkerService.saveWorker(worker.id);
+        setSavedWorkerIds((current) => new Set([...current, worker.id]));
+        showToast(`${worker.name} saved for later`, "success");
+      }
+    } catch (error) {
+      showToast(error.response?.data?.message || "Failed to update saved workers", "error");
+    }
+  };
+
   const filteredWorkers = workers.filter(w => 
     w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     w.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const closeAuthPrompt = () => setAuthPromptWorker(null);
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setUserLocation(null);
+    setShowMap(false);
+    setSelectedCategory('');
+    navigate('/workers', { replace: true });
+  };
+
+  const goToLogin = () => {
+    setAuthPromptWorker(null);
+    navigate('/login', { state: { from: location, message: 'login-required-for-booking' } });
+  };
 
   return (
     <div className="min-h-screen bg-bgLight pt-28 pb-20 px-5 lg:px-20">
@@ -187,7 +273,7 @@ export default function Workers() {
               <h3 className="font-bold text-gray-900 flex items-center gap-2">
                 <SlidersHorizontal size={18} className="text-accent" /> Filters
               </h3>
-              <button onClick={() => {setSelectedCategory(''); setSearchQuery(''); setUserLocation(null);}} className="text-xs font-bold text-accent hover:underline">Reset</button>
+              <button onClick={handleResetFilters} className="text-xs font-bold text-accent hover:underline">Reset</button>
             </div>
 
             <div className="space-y-6">
@@ -254,6 +340,8 @@ export default function Workers() {
                         worker={worker} 
                         onBook={handleBook}
                         onChat={handleChat}
+                        onSave={handleSave}
+                        isSaved={savedWorkerIds.has(worker.id)}
                       />
                     </div>
                   ))}
@@ -280,6 +368,66 @@ export default function Workers() {
           )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {authPromptWorker && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4"
+            role="presentation"
+            onClick={closeAuthPrompt}
+          >
+            <motion.div
+              initial={{ scale: 0.96, y: 12, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.96, y: 12, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="login-prompt-title"
+              aria-describedby="login-prompt-description"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-accent mb-2">
+                    Login required
+                  </p>
+                  <h3 id="login-prompt-title" className="text-2xl font-bold text-gray-900">
+                    Sign in to book {authPromptWorker.name}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeAuthPrompt}
+                  className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                  aria-label="Close login prompt"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <p id="login-prompt-description" className="mt-4 text-gray-600 leading-7">
+                Booking is available only after login. Choose login to continue, or close this
+                dialog to keep browsing workers on this page.
+              </p>
+
+              <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                <Button type="button" ref={loginButtonRef} onClick={goToLogin} className="flex-1 py-3">
+                  <LogIn size={18} />
+                  Go to login
+                </Button>
+                <Button type="button" variant="outline" onClick={closeAuthPrompt} className="flex-1 py-3">
+                  Continue browsing
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

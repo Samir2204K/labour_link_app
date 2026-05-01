@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Phone, Lock, KeyRound, Mail } from 'lucide-react';
 import { Button, Input } from '../components/UI';
@@ -14,6 +14,11 @@ export default function Login() {
   const { login, sendOtp, verifyOtp, resendOtp } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from;
+  const returnPath = from
+    ? `${from.pathname || ''}${from.search || ''}${from.hash || ''}`
+    : null;
 
   const handleResendOtp = async () => {
     setLoading(true);
@@ -34,7 +39,7 @@ export default function Login() {
       const data = await login(formData.email, formData.password);
       showToast("Logged in successfully!", "success");
       const role = data.user.role.toLowerCase();
-      navigate(`/${role}-dashboard`);
+      navigate(returnPath || `/${role}-dashboard`);
     } catch (error) {
       showToast(error.response?.data?.message || "Invalid credentials", "error");
     } finally {
@@ -68,7 +73,7 @@ export default function Login() {
       await verifyOtp(formData.email, formData.otp);
       showToast("Logged in successfully!", "success");
       const role = localStorage.getItem('role');
-      navigate(`/${role}-dashboard`);
+      navigate(returnPath || `/${role}-dashboard`);
     } catch (error) {
       showToast(error.response?.data?.message || "Invalid code", "error");
     } finally {

@@ -81,7 +81,7 @@ export default function Home() {
             <motion.div
               key={service.id}
               whileHover={{ y: -5 }}
-              onClick={() => navigate(`/workers?category=${service.id}`)}
+              onClick={() => navigate(`/workers?category=${encodeURIComponent(service.id)}`)}
               className="flex flex-col items-center p-6 rounded-2xl bg-gray-50 hover:bg-white hover:shadow-card border border-transparent hover:border-accent/10 transition-all cursor-pointer group"
             >
               <div className="size-16 p-3 bg-white rounded-xl shadow-sm mb-4 group-hover:scale-110 transition-transform">

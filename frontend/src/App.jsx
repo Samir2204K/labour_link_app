@@ -14,6 +14,10 @@ const CustomerDashboard = lazy(() => import('./pages/CustomerDashboard'));
 const WorkerDashboard = lazy(() => import('./pages/WorkerDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminReports = lazy(() => import('./pages/AdminReports'));
+const BookingHistory = lazy(() => import('./pages/BookingHistory'));
+const SavedWorkers = lazy(() => import('./pages/SavedWorkers'));
+const SettingsPage = lazy(() => import('./pages/Settings'));
+const WorkerEarnings = lazy(() => import('./pages/WorkerEarnings'));
 
 const Navbar = () => {
   const { user, role } = useAuth();
@@ -111,9 +115,16 @@ export default function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/workers" element={<Workers />} />
                 <Route path="/customer-dashboard" element={<ProtectedRoute allowedRole="customer"><CustomerDashboard /></ProtectedRoute>} />
+                <Route path="/customer-history" element={<ProtectedRoute allowedRole="customer"><BookingHistory /></ProtectedRoute>} />
+                <Route path="/customer-saved" element={<ProtectedRoute allowedRole="customer"><SavedWorkers /></ProtectedRoute>} />
+                <Route path="/customer-settings" element={<ProtectedRoute allowedRole="customer"><SettingsPage /></ProtectedRoute>} />
                 <Route path="/worker-dashboard" element={<ProtectedRoute allowedRole="worker"><WorkerDashboard /></ProtectedRoute>} />
+                <Route path="/worker-jobs" element={<ProtectedRoute allowedRole="worker"><BookingHistory /></ProtectedRoute>} />
+                <Route path="/worker-earnings" element={<ProtectedRoute allowedRole="worker"><WorkerEarnings /></ProtectedRoute>} />
+                <Route path="/worker-profile" element={<ProtectedRoute allowedRole="worker"><SettingsPage /></ProtectedRoute>} />
                 <Route path="/admin-dashboard" element={<ProtectedRoute allowedRole="admin"><AdminDashboard /></ProtectedRoute>} />
                 <Route path="/admin-reports" element={<ProtectedRoute allowedRole="admin"><AdminReports /></ProtectedRoute>} />
+                <Route path="/admin-settings" element={<ProtectedRoute allowedRole="admin"><SettingsPage /></ProtectedRoute>} />
               </Routes>
             </motion.div>
           </AnimatePresence>

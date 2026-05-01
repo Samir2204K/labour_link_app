@@ -11,15 +11,17 @@ export const WorkerCard = ({ worker, onBook, onChat, onSave, isSaved }) => {
       whileHover={{ y: -5 }}
       className="group relative bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-card transition-all"
     >
-      <button 
-        onClick={() => onSave?.(worker)}
-        className={cn(
-          "absolute top-4 right-4 p-2.5 rounded-full shadow-sm transition-all z-10",
-          isSaved ? "bg-red-50 text-red-500" : "bg-white text-gray-300 hover:text-red-400"
-        )}
-      >
-        <Heart size={20} fill={isSaved ? "currentColor" : "none"} />
-      </button>
+      {onSave && (
+        <button 
+          onClick={() => onSave(worker)}
+          className={cn(
+            "absolute top-4 right-4 p-2.5 rounded-full shadow-sm transition-all z-10",
+            isSaved ? "bg-red-50 text-red-500" : "bg-white text-gray-300 hover:text-red-400"
+          )}
+        >
+          <Heart size={20} fill={isSaved ? "currentColor" : "none"} />
+        </button>
+      )}
 
       <div className="flex gap-4 mb-6">
         <div className="relative">
@@ -45,7 +47,7 @@ export const WorkerCard = ({ worker, onBook, onChat, onSave, isSaved }) => {
         </div>
         <div className="text-center border-l border-gray-100">
           <p className="text-xs font-bold text-gray-400 uppercase">Rate</p>
-          <p className="font-bold text-gray-700">₹{worker.price}<span className="text-[10px] text-gray-400">/day</span></p>
+          <p className="font-bold text-gray-700">INR {worker.price}<span className="text-[10px] text-gray-400">/hr</span></p>
         </div>
       </div>
 
